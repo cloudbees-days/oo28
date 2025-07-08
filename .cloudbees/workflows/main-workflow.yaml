@@ -5,14 +5,13 @@ on:
   push:
     branches:
       - "**"
-  workflow_dispatch:
 permissions:
   scm-token-own: read
   scm-token-org: read
   id-token: write
 env:
   APP_NAME: hackers-organized
-  NAMESPACE: hackers-organized-oo28
+  NAMESPACE: hackers-organized-oo28 # TODO: Replace with your namespace
 jobs:
   test:
     outputs:
@@ -62,16 +61,26 @@ jobs:
           destination: ${{ secrets.DOCKERHUB_USER }}/hackers-organized:${{ cloudbees.scm.sha }},${{ secrets.DOCKERHUB_USER }}/hackers-organized:latest
           tar-path: container-image.tar
           build-args: BUILDKIT_CONTEXT_KEEP_GIT_DIR=1,BUILDKIT_INLINE_CACHE=1
-      - name: Publish evidence
-        uses: cloudbees-io/publish-evidence-item@v1
-        with:
-          content: |-
-            ## Built and pushed image to docker hub
+      # Commenté temporairement pour éviter les conflits d'artefacts
+      # - uses: cloudbees-io/asset-chain-utils/upload-binary@v1
+      #   name: Upload binary from container build
+      #   continue-on-error: true
+      #   id: upload-binary
+      #   with:
+      #     file-path: container-image.tar
+      #     file-type: BINARY_CONTAINER
+      #     debug: "true"
+      # Commenté temporairement pour éviter les erreurs
+      # - name: Publish evidence
+      #   uses: cloudbees-io/publish-evidence-item@v1
+      #   with:
+      #     content: |-
+      #       ## Built and pushed image to docker hub
 
-            [Docker Hub](https://hub.docker.com/repository/docker/ldonleycb/hackers-organized/tags)
+      #       [Docker Hub](https://hub.docker.com/repository/docker/${{ secrets.DOCKERHUB_USER }}/hackers-organized/tags)
 
-            Deployed hackers-organized:${{ cloudbees.scm.sha }}
-          format: MARKDOWN
+      #       Deployed hackers-organized:${{ cloudbees.scm.sha }}
+      #     format: MARKDOWN
     needs: test
   scan:
     outputs:
@@ -110,7 +119,7 @@ jobs:
         with:
           orgname: ${{ secrets.SNYK_ORGNAME }}
           token: ${{ secrets.SNYK_TOKEN }}
-          language: LANGUAGE_JS
+          language: "LANGUAGE_JS"
       - name: Fetch SonarQube Issues
         id: FetchSonarQubeIssues
         uses: docker://alpine/git:latest
@@ -142,7 +151,7 @@ jobs:
             | MINOR_COUNT          | ${{ steps.FetchSonarQubeIssues.outputs.MINOR_COUNT }} |
           format: MARKDOWN
   deploy:
-    environment: lsa26
+    environment: lsa26 # TODO: Replace with the name of the environment you just created
     steps:
       - name: Checkout
         uses: cloudbees-io/checkout@v1
@@ -174,11 +183,11 @@ jobs:
       - name: Register_deployed_artifact
         uses: https://github.com/cloudbees-io/register-deployed-artifact@v1
         with:
-          name: ${{ secrets.DOCKERHUB_USER }}/hackers-organized
-          version: ${{ cloudbees.scm.sha }}
-          url: ${{ secrets.DOCKERHUB_USER }}/hackers-organized:${{ cloudbees.scm.sha }}
+          name: "${{ secrets.DOCKERHUB_USER }}/hackers-organized"
+          version: "${{ cloudbees.scm.sha }}"
+          url: "${{ secrets.DOCKERHUB_USER }}/hackers-organized:${{ cloudbees.scm.sha }}"
           digest: ""
-          target-environment: lsa26
+          target-environment: "lsa26" # TODO: Change to match your environment
     needs:
       - build-container-image
       - scan
